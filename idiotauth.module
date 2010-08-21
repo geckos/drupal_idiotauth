@@ -1,0 +1,53 @@
+<?php
+// $Id$
+
+function idiotauth_init() {
+    if (!user_is_anonymous() || !isset($_COOKIE['idiotauth'])) {
+        return;
+    }
+
+    $authStr = $_COOKIE['idiotauth'];
+    $pieces = explode('|', $authStr);
+    $uid = $pieces[0];
+    $sectime = $pieces[1];
+
+    $user = db_fetch_object(db_query(
+        'select login from {users} where uid=%d limit 1', $uid));
+
+    if (!$user) {
+        return;
+    }
+
+    $logintime = md5($user->login . $_COOKIE['idiotauth_salt']);
+
+    if ($logintime == $sectime) {
+        idiotauth_authuser(array('uid' => $uid));
+    }
+}
+
+/**
+ * A STUPID way to auth a user.
+ */
+function idiotauth_authuser($form_values = array()) {
+    global $user;
+
+    // Load the account to check if the e-mail is denied by an access rule.
+    // Doing this check here saves us a user_load() in user_login_name_validate()
+    // and introduces less code change for a security fix.
+    $account = user_load(array('uid' => $form_values['uid'], 'status' => 1));
+    if ($account && drupal_is_denied('mail', $account->mail)) {
+        form_set_error('name', t('The name %name is registered using a reserved e-mail address and therefore could not be logged in.', array('%name' => $account->name)));
+    }
+
+    // Id key is required.
+    // The user is about to be logged in, so make sure no error was previously
+    // encountered in the validation process.
+    if (!form_get_errors() && !empty($form_values['uid'])) {
+        $user = $account;
+        user_authenticate_finalize($form_values);
+        return $user;
+    }
+    else {
+        watchdog('user', 'Login attempt failed for %user.', array('%user' => $form_values['name']));
+    }
+}

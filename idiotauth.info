@@ -1,0 +1,5 @@
+; $Id$
+
+name = Idiot Auth
+description = Idiot and simple way to login druapl associate other php system.
+core = 6.x
