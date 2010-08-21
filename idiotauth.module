@@ -2,7 +2,9 @@
 // $Id$
 
 function idiotauth_init() {
-    if (!user_is_anonymous() || !isset($_COOKIE['idiotauth'])) {
+    if (!user_is_anonymous() 
+        || !isset($_COOKIE['idiotauth'])
+        || !isset($_COOKIE['idiotauth_salt'])) {
         return;
     }
 
